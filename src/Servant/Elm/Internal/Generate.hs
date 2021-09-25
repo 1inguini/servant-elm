@@ -496,33 +496,18 @@ mkRequest opts request =
     expect =
       case request ^. F.reqReturnType of
         Just elmTypeExpr
-          | isEmptyType opts elmTypeExpr
-            -- let elmConstructor = T.pack (renderElm elmTypeExpr)
-           ->
-            "Http.expectString " <> line <+> indent i "(\\x -> case x of" <> line <+>
-            indent i "Err e -> toMsg (Err e)" <> line <+>
-            indent i "Ok _ -> toMsg (Ok ()))"
+          | isEmptyType opts elmTypeExpr ->
+            let elmConstructor = T.pack (renderElm elmTypeExpr)
+            in
+              "Http.expectStringResponse" <$>
+              indent i (parens (backslash <> " rsp " <+> "->" <$>
+                                indent i ("if String.isEmpty rsp.body then" <$>
+                                          indent i "Ok" <+> stext elmConstructor <$>
+                                          "else" <$>
+                                          indent i ("Err" <+> dquotes "Expected the response body to be empty")) <> line))
         Just elmTypeExpr ->
           "Http.expectJson toMsg" <+> renderDecoderName elmTypeExpr
         Nothing -> error "mkHttpRequest: no reqReturnType?"
-      -- case request ^. F.reqReturnType of
-      --   Just elmTypeExpr | isEmptyType opts elmTypeExpr ->
-      --     let elmConstructor =
-      --           toElmTypeRefWith opts elmTypeExpr
-      --     in
-      --       "Http.expectStringResponse" <$>
-      --       indent i (parens (backslash <> " rsp " <+> "->" <$>
-      --                         indent i ("if String.isEmpty rsp.body then" <$>
-      --                                   indent i "Ok" <+> stext elmConstructor <$>
-      --                                   "else" <$>
-      --                                   indent i ("Err" <+> dquotes "Expected the response body to be empty")) <> line))
-
-
-      --   Just elmTypeExpr ->
-      --     "Http.expectJson <|" <+> stext (toElmDecoderRefWith opts elmTypeExpr)
-
-      --   Nothing ->
-      --     error "mkHttpRequest: no reqReturnType?"
 
 renderDecoderName :: EType -> Doc
 renderDecoderName elmTypeExpr =
