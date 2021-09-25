@@ -311,8 +311,7 @@ mkTypeSignature opts request =
 
     returnType :: Maybe Doc
     returnType = do
-      result <- fmap elmTypeRef $ request ^. F.reqReturnType
-      pure ("Http.Request" <+> parens ("Http.Response" <+> parens result))
+      pure ("Cmd msg")
 
 
 elmHeaderArg :: F.HeaderArg EType -> Doc
