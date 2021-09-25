@@ -20,11 +20,11 @@ import           Elm.Json (jsonParserForType, jsonSerForType)
 import qualified Elm.Module                   as Elm
 import           Elm.TyRep (ETCon(..), EType(..), ETypeDef(..), toElmType)
 import           Elm.TyRender (renderElm)
-#if MIN_VERSION_elm_bridge(0,6,0)
+
 import           Elm.Versions (ElmVersion(Elm0p19))
-#else
-import           Elm.Versions (ElmVersion(Elm0p18))
-#endif
+
+
+
 import           Servant.Elm.Internal.Foreign (LangElm, getEndpoints)
 import qualified Servant.Foreign              as F
 import           System.Directory (createDirectoryIfMissing)
@@ -53,11 +53,11 @@ data ElmOptions = ElmOptions
     argument.
     -}
     urlPrefix             :: UrlPrefix
-  , elmTypeAlterations        :: (EType -> EType)
+  , elmTypeAlterations        :: EType -> EType
     -- ^ Alterations to perform on ETypes before code generation.
-  , elmAlterations        :: (ETypeDef -> ETypeDef)
+  , elmAlterations        :: ETypeDef -> ETypeDef
     -- ^ Alterations to perform on ETypeDefs before code generation.
-  , elmToString          :: (EType -> Text)
+  , elmToString          :: EType -> Text
     -- ^ Elm functions creating a string from a given type.
   , emptyResponseElmTypes :: [EType]
     -- ^ Types that represent an empty Http response.
@@ -154,11 +154,11 @@ generateElmModuleWith options namespace imports rootDir typeDefs api = do
   let out =
         T.unlines $
         [
-#if MIN_VERSION_elm_bridge(0,6,0)
+
           T.pack $ Elm.moduleHeader Elm0p19 moduleName
-#else
-          T.pack $ Elm.moduleHeader Elm0p18 moduleName
-#endif
+
+
+
         , ""
         , imports
         , T.pack $ Elm.makeModuleContentWithAlterations (elmAlterations options) typeDefs
@@ -183,8 +183,7 @@ generateElmModule ::
   -> [Elm.DefineElm]
   -> Proxy api
   -> IO ()
-generateElmModule namespace imports filePath typeDefs api =
-  generateElmModuleWith defElmOptions namespace imports filePath typeDefs api
+generateElmModule = generateElmModuleWith defElmOptions
 
 {-|
 Generate Elm code for the API with default options.
@@ -272,7 +271,7 @@ mkTypeSignature opts request =
   where
     urlPrefixType :: Maybe Doc
     urlPrefixType =
-        case (urlPrefix opts) of
+        case urlPrefix opts of
           Dynamic -> Just "String"
           Static _ -> Nothing
 
@@ -310,7 +309,7 @@ mkTypeSignature opts request =
       Just ("(Result Http.Error " <+> parens result <+> " -> msg)")
 
     returnType :: Maybe Doc
-    returnType = do
+    returnType =
       pure ("Cmd msg")
 
 
@@ -354,7 +353,7 @@ mkArgs
   -> F.Req EType
   -> Doc
 mkArgs opts request =
-  (hsep . concat) $
+  (hsep . concat)
     [ -- Dynamic url prefix
       case urlPrefix opts of
         Dynamic -> ["urlBase"]
@@ -401,7 +400,7 @@ mkLetParams opts request =
               toString opts (maybeOf argType)
           in
               "[" <+> (if wrapped then elmName else "Just" <+> elmName) <> line <>
-                (indent 4 ("|> Maybe.map" <+> composeRight [toStringSrc, "Url.Builder.string" <+> dquotes name]))
+                indent 4 ("|> Maybe.map" <+> composeRight [toStringSrc, "Url.Builder.string" <+> dquotes name])
                 <+> "]"
               -- (if wrapped then name else "Just" <+> name) <$>
               -- indent 4 ("|> Maybe.map" <+> parens (toStringSrc <> "Http.encodeUri >> (++)" <+> dquotes (elmName <> equals)) <$>
@@ -496,8 +495,8 @@ mkRequest opts request =
     expect =
       case request ^. F.reqReturnType of
         Just elmTypeExpr
-          | isEmptyType opts elmTypeExpr ->
-            let elmConstructor = T.pack (renderElm elmTypeExpr)
+          | isEmptyType opts (elmTypeAlterations opts elmTypeExpr) ->
+            let elmConstructor = T.pack (renderElm (elmTypeAlterations opts elmTypeExpr))
             in
               "Http.expectStringResponse" <$>
               indent i (parens (backslash <> " rsp " <+> "->" <$>
@@ -506,7 +505,7 @@ mkRequest opts request =
                                           "else" <$>
                                           indent i ("Err" <+> dquotes "Expected the response body to be empty")) <> line))
         Just elmTypeExpr ->
-          "Http.expectJson toMsg" <+> renderDecoderName elmTypeExpr
+          "Http.expectJson toMsg" <+> renderDecoderName (elmTypeAlterations opts elmTypeExpr)
         Nothing -> error "mkHttpRequest: no reqReturnType?"
 
 renderDecoderName :: EType -> Doc
@@ -520,7 +519,7 @@ renderDecoderName elmTypeExpr =
       parens (renderDecoderName x <+> renderDecoderName y)
     ETyCon (ETCon "Int") -> "Json.Decode.int"
     ETyCon (ETCon "String") -> "Json.Decode.string"
-    _ -> ("jsonDec" <> stext (T.pack (renderElm elmTypeExpr)))
+    _ -> "jsonDec" <> stext (T.pack (renderElm elmTypeExpr))
 
 
 mkUrl :: ElmOptions -> [F.Segment EType] -> Doc
