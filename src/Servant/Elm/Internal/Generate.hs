@@ -512,8 +512,8 @@ mkRequest opts request =
             indent i "Http.Timeout_ -> (Err Timeout)" <> line <+>
             indent i "Http.NetworkError_ -> (Err NetworkError)" <> line <+>
             indent i "Http.BadStatus_ meta badBody -> case Json.Decode.decodeString jsonDecErrorBody badBody of " <> line <+>
-            indent i $ indent i "Err err -> Err (BadStatusBadBody meta err)" <> line <+>
-            indent i $ indent i "Ok errorBody -> Err (BadStatus meta errorBody)" <> line <+>
+            indent i (indent i "Err err -> Err (BadStatusBadBody meta err)") <> line <+>
+            indent i (indent i "Ok errorBody -> Err (BadStatus meta errorBody)") <> line <+>
             indent i "Http.GoodStatus_ meta _ -> (Ok (meta, ()))" <> line <+>
             indent i ")"
         Just elmTypeExpr ->
@@ -522,11 +522,11 @@ mkRequest opts request =
             indent i "Http.Timeout_ -> Err Timeout" <> line <+>
             indent i "Http.NetworkError_ -> Err NetworkError" <> line <+>
             indent i "Http.BadStatus_ meta badBody -> case Json.Decode.decodeString jsonDecErrorBody badBody of " <> line <+>
-            indent i $ indent i "Err err -> Err (BadStatusBadBody meta err)" <> line <+>
-            indent i $ indent i "Ok errorBody -> Err (BadStatus meta errorBody)" <> line <+>
+            indent i (indent i "Err err -> Err (BadStatusBadBody meta err)") <> line <+>
+            indent i (indent i "Ok errorBody -> Err (BadStatus meta errorBody)") <> line <+>
             indent i "Http.GoodStatus_ meta goodBody -> case Json.Decode.decodeString " <+> renderDecoderName elmTypeExpr <+> " goodBody of " <> line <+>
-            indent i $ indent i "Err err -> Err (GoodStatusBadBody meta err)" <> line <+>
-            indent i $ indent i "Ok errorBody -> Ok (meta, errorBody)" <> line <+>
+            indent i (indent i "Err err -> Err (GoodStatusBadBody meta err)") <> line <+>
+            indent i (indent i "Ok errorBody -> Ok (meta, errorBody)") <> line <+>
             indent i ")"
         Nothing -> error "mkHttpRequest: no reqReturnType?"
       -- case request ^. F.reqReturnType of
