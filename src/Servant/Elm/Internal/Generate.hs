@@ -505,20 +505,20 @@ mkRequest opts request =
           | isEmptyType opts $ (elmTypeAlterations opts) elmTypeExpr
             -- let elmConstructor = T.pack (renderElm elmTypeExpr)
            ->
-            "Http.expectStringResponse " <> line <+> indent i "(\\x -> case x of" <> line <+>
-            indent i "Http.BadUrl_ url -> toMsg (Err (BadUrl url))" <> line <+>
-            indent i "Http.Timeout_ -> toMsg (Err Timeout)" <> line <+>
-            indent i "Http.NetworkError_ -> toMsg (Err NetworkError)" <> line <+>
-            indent i "Http.BadStatus_ meta badBody -> toMsg (Err (BadStatus <| Json.Decode.decodeString jsonDecErrorBody badBody))" <> line <+>
-            indent i "Http.GoodStatus_ meta _ -> toMsg (Ok (meta, ()))" <> line <+>
+            "Http.expectStringResponse toMsg " <> line <+> indent i "(\\x -> case x of" <> line <+>
+            indent i "Http.BadUrl_ url -> (Err (BadUrl url))" <> line <+>
+            indent i "Http.Timeout_ -> (Err Timeout)" <> line <+>
+            indent i "Http.NetworkError_ -> (Err NetworkError)" <> line <+>
+            indent i "Http.BadStatus_ meta badBody -> (Err (BadStatus meta <| Json.Decode.decodeString jsonDecErrorBody badBody))" <> line <+>
+            indent i "Http.GoodStatus_ meta _ -> (Ok (meta, ()))" <> line <+>
             indent i ")"
         Just elmTypeExpr ->
-            "Http.expectStringResponse " <> line <+> indent i "(\\x -> case x of" <> line <+>
-            indent i "Http.BadUrl_ url -> toMsg (Err (BadUrl url))" <> line <+>
-            indent i "Http.Timeout_ -> toMsg (Err Timeout)" <> line <+>
-            indent i "Http.NetworkError_ -> toMsg (Err NetworkError)" <> line <+>
-            indent i "Http.BadStatus_ meta badBody -> toMsg (Err (BadStatus <| Json.Decode.decodeString jsonDecErrorBody badBody))" <> line <+>
-            indent i "Http.GoodStatus_ meta goodBody -> toMsg (Ok (meta, Json.Decode.decodeString " <+> renderDecoderName ((elmTypeAlterations opts) elmTypeExpr) <+> " goodBody))" <> line <+>
+            "Http.expectStringResponse toMsg " <> line <+> indent i "(\\x -> case x of" <> line <+>
+            indent i "Http.BadUrl_ url -> (Err (BadUrl url))" <> line <+>
+            indent i "Http.Timeout_ -> (Err Timeout)" <> line <+>
+            indent i "Http.NetworkError_ -> (Err NetworkError)" <> line <+>
+            indent i "Http.BadStatus_ meta badBody -> (Err (BadStatus meta <| Json.Decode.decodeString jsonDecErrorBody badBody))" <> line <+>
+            indent i "Http.GoodStatus_ meta goodBody -> (Ok (meta, Json.Decode.decodeString " <+> renderDecoderName ((elmTypeAlterations opts) elmTypeExpr) <+> " goodBody))" <> line <+>
             indent i ")"
         Nothing -> error "mkHttpRequest: no reqReturnType?"
       -- case request ^. F.reqReturnType of
