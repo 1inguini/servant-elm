@@ -503,7 +503,7 @@ mkRequest opts request =
     expect =
       case request ^. F.reqReturnType of
         Just elmTypeExpr
-          | isEmptyType opts elmTypeExpr
+          | isEmptyType opts $ (elmTypeAlterations opts) elmTypeExpr
             -- let elmConstructor = T.pack (renderElm elmTypeExpr)
            ->
             "Http.expectStringResponse " <> line <+> indent i "(\\x -> case x of" <> line <+>
@@ -519,7 +519,7 @@ mkRequest opts request =
             indent i "Http.Timeout_ -> toMsg Timeout" <> line <+>
             indent i "Http.NetworkError_ -> toMsg NetworkError" <> line <+>
             indent i "Http.BadStatus_ meta body -> toMsg (BadStatus <| Json.Decode.decodeString jsonDecErrorBody body)" <> line <+>
-            indent i "Http.GoodStatus_ meta body -> toMsg (GoodStatus <| Json.Decode.decodeString " <+> renderDecoderName elmTypeExpr <+> " body)" <> line <+>
+            indent i "Http.GoodStatus_ meta body -> toMsg (GoodStatus <| Json.Decode.decodeString " <+> renderDecoderName ((elmTypeAlterations opts) elmTypeExpr) <+> " body)" <> line <+>
             indent i ")"
         Nothing -> error "mkHttpRequest: no reqReturnType?"
       -- case request ^. F.reqReturnType of
