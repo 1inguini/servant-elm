@@ -510,7 +510,7 @@ mkRequest opts request =
             indent i "Http.BadUrl_ url -> toMsg (BadUrl url)" <> line <+>
             indent i "Http.Timeout_ -> toMsg Timeout" <> line <+>
             indent i "Http.NetworkError_ -> toMsg NetworkError" <> line <+>
-            indent i "Http.BadStatus_ meta body -> toMsg (BadStatus meta <| Json.Decode.decodeString jsonDecErrorBody body)" <> line <+>
+            indent i "Http.BadStatus_ meta badBody -> toMsg (BadStatus meta <| Json.Decode.decodeString jsonDecErrorBody badBody)" <> line <+>
             indent i "Http.GoodStatus_ meta _ -> toMsg (GoodStatus meta ())" <> line <+>
             indent i ")"
         Just elmTypeExpr ->
@@ -518,8 +518,8 @@ mkRequest opts request =
             indent i "Http.BadUrl_ url -> toMsg (BadUrl url)" <> line <+>
             indent i "Http.Timeout_ -> toMsg Timeout" <> line <+>
             indent i "Http.NetworkError_ -> toMsg NetworkError" <> line <+>
-            indent i "Http.BadStatus_ meta body -> toMsg (BadStatus <| Json.Decode.decodeString jsonDecErrorBody body)" <> line <+>
-            indent i "Http.GoodStatus_ meta body -> toMsg (GoodStatus <| Json.Decode.decodeString " <+> renderDecoderName ((elmTypeAlterations opts) elmTypeExpr) <+> " body)" <> line <+>
+            indent i "Http.BadStatus_ meta badBody -> toMsg (BadStatus <| Json.Decode.decodeString jsonDecErrorBody badBody)" <> line <+>
+            indent i "Http.GoodStatus_ meta goodBody -> toMsg (GoodStatus <| Json.Decode.decodeString " <+> renderDecoderName ((elmTypeAlterations opts) elmTypeExpr) <+> " goodBody)" <> line <+>
             indent i ")"
         Nothing -> error "mkHttpRequest: no reqReturnType?"
       -- case request ^. F.reqReturnType of
