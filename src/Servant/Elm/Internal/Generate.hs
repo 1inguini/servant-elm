@@ -134,11 +134,13 @@ defElmImports =
     , "import String"
     , "import Url.Builder"
     , ""
-    , "type ResponseError badBody"
+    , "type ResponseError decodeError badBody"
     , "    = BadUrl String"
     , "    | Timeout"
     , "    | NetworkError"
     , "    | BadStatus Http.Metadata badBody"
+    , "    | BadStatusBadBody Http.Metadata decodeError"
+    , "    | GoodStatusBadBody Http.Metadata decodeError"
     ]
 
 {-|
@@ -313,7 +315,7 @@ mkTypeSignature opts request =
     toMsgType :: Maybe Doc
     toMsgType = do
       result <- fmap elmTypeRef $ request ^. F.reqReturnType
-      Just ("(Result (ResponseError ErrorBody) (Http.Metadata, " <+> result <+> ") -> msg)")
+      Just ("(Result (ResponseError Decode.Json.Error ErrorBody) (Http.Metadata, " <+> result <+> ") -> msg)")
 
     returnType :: Maybe Doc
     returnType = do
@@ -509,16 +511,22 @@ mkRequest opts request =
             indent i "Http.BadUrl_ url -> (Err (BadUrl url))" <> line <+>
             indent i "Http.Timeout_ -> (Err Timeout)" <> line <+>
             indent i "Http.NetworkError_ -> (Err NetworkError)" <> line <+>
-            indent i "Http.BadStatus_ meta badBody -> (Err (BadStatus meta <| Json.Decode.decodeString jsonDecErrorBody badBody))" <> line <+>
+            indent i "Http.BadStatus_ meta badBody -> case Json.Decode.decodeString jsonDecErrorBody badBody of " <> line <+>
+            indent i $ indent i "Err err -> Err (BadStatusBadBody meta err)" <> line <+>
+            indent i $ indent i "Ok errorBody -> Err (BadStatus meta errorBody)" <> line <+>
             indent i "Http.GoodStatus_ meta _ -> (Ok (meta, ()))" <> line <+>
             indent i ")"
         Just elmTypeExpr ->
             "Http.expectStringResponse toMsg " <> line <+> indent i "(\\x -> case x of" <> line <+>
-            indent i "Http.BadUrl_ url -> (Err (BadUrl url))" <> line <+>
-            indent i "Http.Timeout_ -> (Err Timeout)" <> line <+>
-            indent i "Http.NetworkError_ -> (Err NetworkError)" <> line <+>
-            indent i "Http.BadStatus_ meta badBody -> (Err (BadStatus meta <| Json.Decode.decodeString jsonDecErrorBody badBody))" <> line <+>
-            indent i "Http.GoodStatus_ meta goodBody -> (Ok (meta, Json.Decode.decodeString " <+> renderDecoderName elmTypeExpr <+> " goodBody))" <> line <+>
+            indent i "Http.BadUrl_ url -> Err (BadUrl url)" <> line <+>
+            indent i "Http.Timeout_ -> Err Timeout" <> line <+>
+            indent i "Http.NetworkError_ -> Err NetworkError" <> line <+>
+            indent i "Http.BadStatus_ meta badBody -> case Json.Decode.decodeString jsonDecErrorBody badBody of " <> line <+>
+            indent i $ indent i "Err err -> Err (BadStatusBadBody meta err)" <> line <+>
+            indent i $ indent i "Ok errorBody -> Err (BadStatus meta errorBody)" <> line <+>
+            indent i "Http.GoodStatus_ meta goodBody -> case Json.Decode.decodeString " <+> renderDecoderName elmTypeExpr <+> " goodBody of " <> line <+>
+            indent i $ indent i "Err err -> Err (GoodStatusBadBody meta err)" <> line <+>
+            indent i $ indent i "Ok errorBody -> Ok (meta, errorBody)" <> line <+>
             indent i ")"
         Nothing -> error "mkHttpRequest: no reqReturnType?"
       -- case request ^. F.reqReturnType of
