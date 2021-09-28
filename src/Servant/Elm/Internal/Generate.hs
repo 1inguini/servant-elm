@@ -315,7 +315,7 @@ mkTypeSignature opts request =
     toMsgType :: Maybe Doc
     toMsgType = do
       result <- fmap elmTypeRef $ request ^. F.reqReturnType
-      Just ("(Result (ResponseError Decode.Json.Error ErrorBody) (Http.Metadata, " <+> result <+> ") -> msg)")
+      Just ("(Result (ResponseError Json.Decode.Error ErrorBody) (Http.Metadata, " <+> result <+> ") -> msg)")
 
     returnType :: Maybe Doc
     returnType = do
